@@ -1,0 +1,77 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model GrantCycle {
+  id             Int                @id @default(autoincrement())
+  cycleNumber    Int                @unique
+  title          String
+  year           Int                @default(2025)
+  amountPerAward Int                @default(15000)
+  targetSlots    Int                @default(60)
+  allocatedSlots Int                @default(12)
+  isActive       Boolean            @default(true)
+  deadline       DateTime
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  applications   GrantApplication[]
+}
+
+model GrantApplication {
+  id                  String      @id @default(cuid())
+  refId               String      @unique
+  nullifierHash       String      @unique
+  proofValidity       String      @default("Groth16_Verified")
+  zkTimestamp         DateTime    @default(now())
+  cycleId             Int         @default(14)
+  cycle               GrantCycle  @relation(fields: [cycleId], references: [cycleNumber])
+  
+  // Decoupled Academic & Disbursement Information
+  fullName            String
+  email               String
+  mobile              String
+  collegeName         String
+  collegeCode         String      @default("GCOEN")
+  courseName          String
+  studyYear           Int         @default(1)
+  grantReason         String
+  documentName        String?
+  documentUrl         String?
+  documentSize        String?
+
+  // Review & Workflow Status
+  status              String      @default("PENDING_REVIEW") // PENDING_REVIEW, APPROVED, REJECTED, DISBURSED, DUPLICATE_FLAGGED
+  volunteerNotes      String?
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  disbursementAccount String?
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+model Volunteer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String
+  division  String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ZkVerificationAudit {
+  id           String   @id @default(cuid())
+  nullifierHash String
+  proofType    String   @default("AnonAadhaar_SNARK_Groth16")
+  circuitClaim String   @default("Age >= 18 & District = Vidarbha")
+  isVerified   Boolean  @default(true)
+  ipHash       String   @default("anon-local-loopback")
+  createdAt    DateTime @default(now())
+}
